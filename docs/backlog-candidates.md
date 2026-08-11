@@ -114,9 +114,19 @@ KC登録
 
 完了条件:
 
-- React + Vite、Mastery閾値`0.85`が関連文書で一致している。
+- React + TypeScript + Vite、Mastery閾値`0.85`が関連文書で一致している。
 - 回答時間、PyTorch、クラウド公開のMVP上の扱いが関連文書で一致している。
 - Markdownのコードフェンスが正しく閉じられている。
+
+確認結果（2026-08-12）:
+
+- Masteryの点数、係数、更新式、習得条件は`docs/mastery-policy.md`を正本とする。
+- KC YAMLの`threshold`と`required_evidence`は、共通のMastery Policyと一致させる。
+- 回答時間と問題難易度は、MVPのMastery計算と復習優先度に使用しない。
+- 回答速度を記憶の強さへ反映することは、MVP後の検討対象とする。
+- Python演習はMVPではPyodideをWeb Worker上で実行し、PyTorchと
+  バックエンド実行環境はMVP後の検討対象とする。
+- クラウド公開はMVPの完了条件に含めない。
 
 
 

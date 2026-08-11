@@ -22,6 +22,5 @@ source_refs:
 mastery:
   threshold: 0.85
   required_evidence:
-    - calculation
-    - explanation
-    - delayed_review
+    - no_hint_full_correct
+    - two_question_formats
