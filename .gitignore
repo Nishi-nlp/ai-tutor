@@ -1,0 +1,41 @@
+# macOS
+.DS_Store
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Frontend dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+# Local environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# Locally owned or downloaded teaching materials
+data/books/*.pdf
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
