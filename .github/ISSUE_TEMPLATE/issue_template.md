@@ -1,3 +1,11 @@
+---
+name: 実装タスク
+about: 機能実装や変更内容を整理するためのIssue
+title: ""
+labels: ""
+assignees: ""
+---
+
 ## 目的
 
 このIssueで何を実現するか、なぜ必要かを書く。
