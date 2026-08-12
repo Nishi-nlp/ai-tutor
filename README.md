@@ -140,12 +140,22 @@ docker compose down
 
 ## 品質チェック
 
+Pull Requestを作成・更新する前に、リポジトリのルートで次の確認を行います。
+初回または依存関係の更新後は、先にロックファイルどおりの依存関係を
+インストールします。
+
+```console
+npm --prefix apps/frontend ci
+uv sync --directory apps/backend --frozen
+```
+
 ### フロントエンド
 
 ```console
 npm --prefix apps/frontend run lint
 npm --prefix apps/frontend run format:check
 npm --prefix apps/frontend run test
+npm --prefix apps/frontend run build
 ```
 
 コードをPrettierで整形する場合は、次を実行します。
@@ -167,6 +177,24 @@ uv run --directory apps/backend python -m pytest
 ```console
 uv run --directory apps/backend ruff format .
 ```
+
+`format:check`と`ruff format --check`はファイルを変更せず、整形が必要な場合に
+失敗します。整形コマンドを実行した後は、lint、format、testをもう一度
+実行してください。
+
+### Pull Requestの品質ゲート
+
+GitHub Actionsでは、Pull Requestの作成・更新時にFrontendとBackendを
+別々のジョブとして検査します。Pull Requestを完了扱いにするには、次を
+すべて満たす必要があります。
+
+- ローカルのフロントエンドとバックエンドの品質チェックがすべて成功している。
+- GitHub ActionsのFrontendとBackendが両方とも成功している。
+- 失敗したチェックを無効化、削除またはスキップして回避していない。
+
+いずれかのCIジョブが失敗または実行中の場合、その変更は完了扱いにせず、
+Pull Requestをマージしません。失敗時はGitHub Actionsの該当ジョブとステップの
+ログを確認し、原因を修正してpushした後、新しい実行が成功することを確認します。
 
 ## ドキュメント
 
