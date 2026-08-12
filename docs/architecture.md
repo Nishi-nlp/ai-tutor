@@ -830,6 +830,58 @@ LLMとEmbeddingモデルはFastAPIから利用する。
 使用するプロバイダーとモデルは設定値として管理し、フロントエンドから
 直接呼び出さない。
 
+MVPでは、LLMとEmbeddingのプロバイダーとしてOpenAIを暫定採用する。
+一つのプロバイダーで両方を利用でき、APIキー、SDK、利用条件の確認箇所を
+まとめられるためである。詳細な比較や最適化はMVPの利用結果を得た後に行う。
+
+暫定的に使用するモデルは次のとおりとする。
+
+| 用途 | モデル | 選定理由 |
+|---|---|---|
+| LLM | `gpt-5.6-luna` | 個人利用のMVPでコストを抑えながら、学習フロー全体を検証するため |
+| Embedding | `text-embedding-3-small` | MVPのRAG検索を小さく始め、必要性を確認してから高性能モデルを検討するため |
+
+説明生成やExplain-back評価の品質が不足する場合は、すべての処理を
+一度に変更せず、対象処理を絞って`gpt-5.6-terra`を評価する。
+
+プロバイダーとモデル名は、少なくとも次の環境変数で管理する。
+
+| 環境変数 | MVPの値 | 用途 |
+|---|---|---|
+| `LLM_PROVIDER` | `openai` | LLMプロバイダーの選択 |
+| `LLM_MODEL` | `gpt-5.6-luna` | LLMモデルの選択 |
+| `EMBEDDING_PROVIDER` | `openai` | Embeddingプロバイダーの選択 |
+| `EMBEDDING_MODEL` | `text-embedding-3-small` | Embeddingモデルの選択 |
+| `OPENAI_API_KEY` | ローカル環境で設定 | FastAPIからAPIを利用するための秘密情報 |
+
+`OPENAI_API_KEY`はリポジトリへ保存せず、FastAPIだけが読み取る。
+
+外部APIへ送信するデータは、現在の質問、対象KC、回答に必要な教材チャンク、
+評価基準、必要最小限の会話履歴に限定する。PDF全体、無関係な教材チャンク、
+無関係な過去の会話、ローカルのファイルパス、秘密情報は送信しない。
+学習者のPythonコードは、コードに関する説明や評価が必要な場合に限って送信する。
+
+OpenAI APIへ送信したデータは、明示的にオプトインしない限りモデルの学習に
+使用されない。ただし、不正利用監視のログは標準で最大30日保持される可能性が
+ある。Responses APIは`store=false`で呼び出し、API側に会話状態を保存しない。
+この条件が教材の利用範囲に適合しない場合は、その教材を外部APIへ送信しない。
+
+LLMの構造化出力は、用途ごとに別のスキーマを定義し、共通部分として
+次の項目を持たせる。
+
+| 項目 | 内容 |
+|---|---|
+| `schema_version` | 出力スキーマのバージョン |
+| `kind` | 説明、ヒント、問題生成、回答評価などの出力種別 |
+| `content` | ユーザーへ表示する本文または用途別の結果 |
+| `grounding_status` | `grounded`、`partially_grounded`、`insufficient`のいずれか |
+| `citations` | 教材ID、チャンクID、ページ番号を含む参照元の一覧 |
+| `warnings` | 根拠不足や評価上の注意点の一覧 |
+
+数値の`confidence`はモデルが一貫した確率として出せるとは限らないため、
+共通項目には含めない。使用モデル、プロンプトバージョン、リクエストID、
+生成日時はLLMに生成させず、FastAPI側で実行メタデータとして保存する。
+
 LLMは次の用途に使用する。
 
 - 教材に基づく説明
@@ -884,12 +936,21 @@ MVPでは簡易Mastery Scoreを使用する。
 
 #### LLMとEmbeddingモデル
 
-使用するLLMとEmbeddingモデルは設定値として管理する。
+MVPの暫定選定は「7.1 MVPの技術構成」のAI節に記載する。
+使用するプロバイダーとLLM・Embeddingモデルは設定値として管理し、
+特定モデル固有の入出力形式をドメイン処理へ直接持ち込まない。
 モデルを変更しても、KC、教材チャンク、レッスン、回答履歴を
 維持できるようにする。
 
 教材の元テキストを保存し、Embeddingモデルを変更した場合は
-Embeddingを再生成できるようにする。
+Embeddingを再生成できるようにする。生成したEmbeddingには、使用した
+プロバイダー、モデル名、次元数、生成日時を関連付けて保存する。
+
+参考にした公式情報：
+
+- [OpenAI Models](https://developers.openai.com/api/docs/models)
+- [OpenAI Embedding models](https://developers.openai.com/api/docs/models/all)
+- [OpenAI APIのデータ管理](https://developers.openai.com/api/docs/guides/your-data#default-usage-policies-by-endpoint)
 
 #### RAG検索方式
 

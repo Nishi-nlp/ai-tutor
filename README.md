@@ -138,6 +138,36 @@ docker compose down
 `docker compose down`では名前付きDBボリュームを保持します。
 ローカルデータも削除する`--volumes`は、意図して初期化する場合だけ使用します。
 
+## 品質チェック
+
+### フロントエンド
+
+```console
+npm --prefix apps/frontend run lint
+npm --prefix apps/frontend run format:check
+npm --prefix apps/frontend run test
+```
+
+コードをPrettierで整形する場合は、次を実行します。
+
+```console
+npm --prefix apps/frontend run format
+```
+
+### バックエンド
+
+```console
+uv run --directory apps/backend ruff check .
+uv run --directory apps/backend ruff format --check .
+uv run --directory apps/backend python -m pytest
+```
+
+コードをRuffで整形する場合は、次を実行します。
+
+```console
+uv run --directory apps/backend ruff format .
+```
+
 ## ドキュメント
 
 - [要件定義](docs/requirements.md)

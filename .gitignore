@@ -23,6 +23,7 @@ dist/
 build/
 coverage/
 .vite/
+*.tsbuildinfo
 
 # Local environment variables and secrets
 .env
