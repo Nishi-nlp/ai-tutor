@@ -1,204 +1,110 @@
-# AI Tutor
+# AI Tutor — 7日版
 
-Knowledge Component（KC）を中心に、教材参照、AIとの対話、問題演習、
-Mastery更新、復習を統合する個人利用向けAIチューターです。
+`la.linear_combination`（線形結合）1つに対象を絞り、教材登録から学習履歴と
+Mastery更新までを縦に通すAIチューターの技術検証です。
 
-現在はMVPの設計と開発基盤を整備しています。MVPの技術構成は
-React + TypeScript + Vite、FastAPI、PostgreSQL + pgvectorです。
+```text
+教材登録 → チャンク・Embedding生成 → レッスン表示
+→ 教材根拠付きAI質問 → 問題・ヒント → 採点
+→ Mastery更新 → 学習履歴の保存
+```
 
-## ディレクトリ構成
+## 7日版のスコープ
+
+必須:
+
+- Next.js App Router + TypeScriptの学習画面
+- FastAPI、PostgreSQL、pgvector、SQLAlchemy、Alembic
+- CC0サンプルPDFの登録、ページ単位の抽出、Embedding、類似検索
+- 教材名・ページ番号を示すAI回答と、根拠不足時の回答抑止
+- 固定回答または数値問題2問、3段階以上のヒント、採点
+- 回答履歴の保存と簡易Mastery Scoreの更新
+- 主要フローのテスト、デモ手順、スクリーンショット、60〜90秒の動画
+
+対象外:
+
+- 複数KC、認証、複数ユーザー、クラウド公開
+- OCR、マルチモーダル解析、高度なRAG、汎用PDF対応
+- Socratic Mode、Explain-back評価、Python演習、本格的な復習機能
+- 本番運用水準のセキュリティ、性能、可用性
+
+完成時は「完成した製品版MVP」ではなく、
+「Next.js・FastAPI・pgvectorによる線形結合1KCの学習フローの技術検証」
+として説明します。
+
+## 技術構成
+
+| レイヤー | 採用技術 |
+|---|---|
+| Frontend | Next.js App Router + TypeScript |
+| Backend | FastAPI |
+| Database | PostgreSQL + pgvector |
+| ORM / Migration | SQLAlchemy + Alembic |
+| LLM / Embedding | バックエンドの環境変数でモデルを指定 |
+
+LLM APIキーはブラウザへ渡しません。教材PDFは公開ディレクトリ外へ保存し、
+LLMへ送るチャンクは回答に必要な最小範囲に限定します。
+
+> 現在の`apps/frontend/`は旧Vite雛形です。Day 1の`E1-02-7D`で
+> Next.js App Routerへ置き換えます。現時点の雛形を完成版として扱いません。
+
+## ディレクトリ
 
 | パス | 用途 |
 |---|---|
-| `apps/frontend/` | React + TypeScript + Viteフロントエンド |
+| `apps/frontend/` | Next.jsフロントエンド（Day 1で移行） |
 | `apps/backend/` | FastAPIバックエンド |
-| `data/books/` | 開発時に参照する教材PDF |
 | `data/kcs/` | レビュー済みKCデータ |
-| `docs/` | 要件、Architecture、Mastery Policy、Backlog |
-| `schemas/` | KC、Lesson、Questionなどのスキーマ |
-| `scripts/` | 教材抽出、KC生成・検証・登録用スクリプト |
-| `tests/fixtures/pdfs/` | Git管理可能なCC0のPDFテストデータ |
+| `data/books/` | Git管理しない教材PDFの保存先 |
+| `docs/` | 7日版の要件、設計、計画、Mastery方針 |
+| `scripts/` | 教材・KCの生成、検証、登録用スクリプト |
+| `tests/fixtures/pdfs/` | Git管理可能なCC0サンプルPDF |
 
-`apps/frontend/`、`apps/backend/`、`schemas/`の具体的な内容は、
-対応するIssueで段階的に追加します。
+## 開発環境の目標構成
 
-## Git管理方針
-
-- ソースコード、スキーマ、レビュー済みKC、設計文書を管理する。
-- OSファイル、Pythonキャッシュ、依存パッケージ、ビルド成果物は管理しない。
-- `.env`など秘密情報を含むファイルは管理しない。
-- 共有が必要な環境変数は、値を空またはダミーにした`.env.example`で管理する。
-- 個人所有またはダウンロードした教材PDFはGit管理しない。
-- PDF処理のテストには、プロジェクト作成のCC0サンプルを使用する。
-
-## ローカル開発構成
-
-MVP開発では、フロントエンドとバックエンドをホスト上で起動し、
-PostgreSQLとpgvectorだけをDocker Composeで起動します。
-
-| サービス | 起動場所 | 開発ポート |
+| サービス | 起動場所 | ポート |
 |---|---|---:|
-| React + Vite | ホスト | `5173` |
-| FastAPI + Uvicorn | ホスト | `8000` |
-| PostgreSQL + pgvector | Docker Compose | ホスト`5433`からコンテナ`5432`へ接続 |
+| Next.js | ホスト | `3000` |
+| FastAPI | ホスト | `8000` |
+| PostgreSQL + pgvector | Docker Compose | `5433` → `5432` |
 
-ReactとFastAPIをホストで起動することで、ホットリロードとデバッグを
-簡単にします。PostgreSQLとpgvectorはDocker化し、OSごとの導入差を
-なくします。GitHubでアプリケーションを配布する段階では、全サービスを
-Docker Composeで起動できる構成を別途追加します。
+目標とする起動手順はDay 1で実装・検証し、このREADMEへ確定版を反映します。
+未実装のコマンドを動作済みとしては記載しません。
 
-### 環境変数
+## 環境変数の方針
 
-- ルートの`.env`はDocker ComposeとFastAPIが共有する。Git管理しない。
-- ルートの`.env.example`は変数名とローカル開発用ダミー値を記載し、Git管理する。
-- `apps/frontend/.env.local`はViteのローカル設定に使用し、Git管理しない。
-- `apps/frontend/.env.example`はフロントエンド用のサンプルとしてGit管理する。
-- `VITE_`で始まる変数はブラウザへ公開されるため、秘密情報を設定しない。
-- LLMやEmbeddingのAPIキーは、プロバイダー決定後にルートの`.env`へ追加する。
+- ルート`.env`にDB接続、LLM、Embeddingの秘密情報を置き、Git管理しない。
+- コミットする`.env.example`には変数名と安全なダミー値だけを置く。
+- Next.jsでブラウザ公開する値だけ`NEXT_PUBLIC_`を付ける。
+- APIキーには`NEXT_PUBLIC_`を付けず、FastAPIだけから参照する。
+- モデル名は設定値として保存し、Embeddingには使用モデル名も記録する。
 
-初回はサンプルをコピーして、必要に応じてローカル値を変更します。
+## 7日間の実装計画
 
-```console
-cp .env.example .env
-cp apps/frontend/.env.example apps/frontend/.env.local
-```
+- Day 1: Next.js、FastAPI、PostgreSQL、pgvector、Alembic
+- Day 2: KC、レッスン、問題、回答履歴、Mastery
+- Day 3: 一画面の学習UI
+- Day 4: PDF登録、抽出、チャンク、Embedding、検索
+- Day 5: 教材根拠付きAI質問と出典表示
+- Day 6: 統合テスト、安全性、UI調整
+- Day 7: README、デモ、スクリーンショット、動画、予備時間
 
-### 教材PDF
+詳細は[7日版ToDo](docs/mvp-todo.md)を参照してください。
 
-個人所有またはダウンロードした教材PDFは`data/books/`へ配置します。
-このディレクトリ内のPDFはGit管理せず、Dockerイメージにも含めません。
-PostgreSQLにはPDF本体ではなく、保存先、チェックサム、ページ情報などの
-メタデータを保存します。
+## 完了条件
 
-テストでは`tests/fixtures/pdfs/sample-linear-algebra.pdf`を使用します。
-これはプロジェクトが作成し、CC0 1.0で提供する3ページのサンプルです。
-次のコマンドで再生成できます。
-
-```console
-uv run --with reportlab python scripts/generate_sample_pdf.py
-```
-
-## ローカル開発手順
-
-次のコマンドはリポジトリのルートで実行します。React、FastAPI、
-PostgreSQLの実体は後続Issueで初期化するため、それまでは起動できません。
-
-### 1. PostgreSQLとpgvectorを起動する
-
-```console
-docker compose up -d db
-```
-
-PostgreSQLには`localhost:5433`で接続します。コンテナ内では標準ポートの
-`5432`を使用します。pgvector拡張はDB初期化時に有効化します。
-
-### 2. FastAPIを起動する
-
-初回または依存関係の更新後に同期します。
-
-```console
-uv sync --project apps/backend
-```
-
-開発サーバーを起動します。`--reload`により、Pythonコードの変更時に
-サーバーが自動再起動します。
-
-```console
-uv run --project apps/backend uvicorn --app-dir apps/backend app.main:app \
-  --reload --port 8000 --env-file .env
-```
-
-### 3. Reactを起動する
-
-初回または依存関係の更新後にパッケージをインストールします。
-
-```console
-npm --prefix apps/frontend install
-```
-
-Vite開発サーバーを起動します。Reactの変更はブラウザへ即時反映されます。
-
-```console
-npm --prefix apps/frontend run dev -- --port 5173
-```
-
-ブラウザで`http://localhost:5173`を開きます。FastAPIは
-`http://localhost:8000`、APIドキュメントは`http://localhost:8000/docs`
-で確認します。
-
-### 4. 終了する
-
-ReactとFastAPIは、それぞれ起動したターミナルで`Ctrl+C`を押します。
-DBを終了する場合は次を実行します。
-
-```console
-docker compose down
-```
-
-`docker compose down`では名前付きDBボリュームを保持します。
-ローカルデータも削除する`--volumes`は、意図して初期化する場合だけ使用します。
-
-## 品質チェック
-
-Pull Requestを作成・更新する前に、リポジトリのルートで次の確認を行います。
-初回または依存関係の更新後は、先にロックファイルどおりの依存関係を
-インストールします。
-
-```console
-npm --prefix apps/frontend ci
-uv sync --directory apps/backend --frozen
-```
-
-### フロントエンド
-
-```console
-npm --prefix apps/frontend run lint
-npm --prefix apps/frontend run format:check
-npm --prefix apps/frontend run test
-npm --prefix apps/frontend run build
-```
-
-コードをPrettierで整形する場合は、次を実行します。
-
-```console
-npm --prefix apps/frontend run format
-```
-
-### バックエンド
-
-```console
-uv run --directory apps/backend ruff check .
-uv run --directory apps/backend ruff format --check .
-uv run --directory apps/backend python -m pytest
-```
-
-コードをRuffで整形する場合は、次を実行します。
-
-```console
-uv run --directory apps/backend ruff format .
-```
-
-`format:check`と`ruff format --check`はファイルを変更せず、整形が必要な場合に
-失敗します。整形コマンドを実行した後は、lint、format、testをもう一度
-実行してください。
-
-### Pull Requestの品質ゲート
-
-GitHub Actionsでは、Pull Requestの作成・更新時にFrontendとBackendを
-別々のジョブとして検査します。Pull Requestを完了扱いにするには、次を
-すべて満たす必要があります。
-
-- ローカルのフロントエンドとバックエンドの品質チェックがすべて成功している。
-- GitHub ActionsのFrontendとBackendが両方とも成功している。
-- 失敗したチェックを無効化、削除またはスキップして回避していない。
-
-いずれかのCIジョブが失敗または実行中の場合、その変更は完了扱いにせず、
-Pull Requestをマージしません。失敗時はGitHub Actionsの該当ジョブとステップの
-ログを確認し、原因を修正してpushした後、新しい実行が成功することを確認します。
+- READMEの確定手順でローカル起動できる。
+- Next.js上で線形結合のレッスン、問題、ヒント、採点を利用できる。
+- CC0 PDFからチャンクとEmbeddingを生成し、教材根拠付きで質問できる。
+- AI回答に教材名とページを表示し、根拠不足時は推測しない。
+- 回答履歴とMasteryがDBへ保存され、再読み込み後も保持される。
+- バックエンドの主要テストとNext.jsの本番ビルドが成功する。
+- スクリーンショットと60〜90秒の動画で一連の動作を説明できる。
 
 ## ドキュメント
 
-- [要件定義](docs/requirements.md)
-- [Architecture](docs/architecture.md)
+- [7日版要件](docs/requirements.md)
+- [7日版Architecture](docs/architecture.md)
+- [7日版ToDo](docs/mvp-todo.md)
+- [Issue一覧・依存関係](docs/backlog-candidates.md)
 - [Mastery Policy](docs/mastery-policy.md)
-- [Backlog候補](docs/backlog-candidates.md)
