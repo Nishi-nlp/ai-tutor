@@ -23,6 +23,7 @@ dist/
 build/
 coverage/
 .vite/
+.next/
 *.tsbuildinfo
 
 # Local environment variables and secrets
