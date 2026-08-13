@@ -12,6 +12,7 @@ describe("getApiHealth", () => {
   afterEach(() => {
     delete process.env.API_BASE_URL;
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("calls the uncached health endpoint and validates its response", async () => {
@@ -29,7 +30,10 @@ describe("getApiHealth", () => {
     });
     expect(fetchMock).toHaveBeenCalledWith(
       new URL("http://fastapi.test:8000/health"),
-      { cache: "no-store" },
+      expect.objectContaining({
+        cache: "no-store",
+        signal: expect.any(AbortSignal),
+      }),
     );
   });
 
@@ -74,6 +78,35 @@ describe("getApiHealth", () => {
 
     await expect(getApiHealth()).rejects.toThrow(
       "FastAPI returned an invalid health response",
+    );
+  });
+
+  it("returns an unavailable state when the health check times out", async () => {
+    const timeoutSignal = new AbortController().signal;
+
+    const timeoutSpy = vi
+      .spyOn(AbortSignal, "timeout")
+      .mockReturnValue(timeoutSignal);
+
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValue(new DOMException("Timed out", "TimeoutError"));
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getApiHealth()).resolves.toEqual({
+      available: false,
+      message: "FastAPIへ接続できませんでした。",
+    });
+
+    expect(timeoutSpy).toHaveBeenCalledWith(5_000);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL("http://fastapi.test:8000/health"),
+      {
+        cache: "no-store",
+        signal: timeoutSignal,
+      },
     );
   });
 });

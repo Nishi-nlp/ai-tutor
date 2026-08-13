@@ -22,6 +22,7 @@ export async function getApiHealth(): Promise<ApiHealth> {
   try {
     response = await fetch(healthUrl, {
       cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
   } catch {
     return {
