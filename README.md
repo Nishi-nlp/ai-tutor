@@ -1,110 +1,220 @@
-# AI Tutor — 7日版
+# AI Tutor
 
-`la.linear_combination`（線形結合）1つに対象を絞り、教材登録から学習履歴と
-Mastery更新までを縦に通すAIチューターの技術検証です。
+教材を根拠に質問へ答えるだけでなく、**レッスン、演習、採点、習熟度更新までを一つの学習体験としてつなぐ**AIチューターの技術検証です。
+
+7日間で動く縦切りを完成させることを目標に、対象を線形代数の1概念（`la.linear_combination` / 線形結合）へ限定しています。機能を広く浅く作るのではなく、教材登録から学習履歴の保存までを一貫したデータモデルで実装することを重視しています。
+
+> **現在のステータス:** 開発中。Next.js / FastAPI / PostgreSQL + pgvectorの基盤と、SQLAlchemy / AlembicによるDB接続・migrationまで実装済みです。学習コンテンツ、採点・Mastery、RAGは今後の実装範囲です。
+
+## 解決したい課題
+
+一般的なRAGチャットは教材への質問には答えられても、「何を学び、どこまで理解し、次に何をすべきか」という学習状態を扱いません。本プロジェクトでは、次の流れを一つの画面とデータモデルで接続します。
 
 ```text
-教材登録 → チャンク・Embedding生成 → レッスン表示
-→ 教材根拠付きAI質問 → 問題・ヒント → 採点
+教材PDFの登録 → チャンク・Embedding生成 → レッスン表示
+→ 教材根拠付きAI質問 → 問題・段階的ヒント → 採点
 → Mastery更新 → 学習履歴の保存
 ```
 
-## 7日版のスコープ
+## プロジェクトの特徴
 
-必須:
+- **教材根拠を追跡できる回答**: 回答に教材名とページ番号を付け、関連する根拠が見つからない場合は回答生成を抑止します。
+- **LLMに依存しない評価**: 採点とMastery更新は決定的なロジックで行い、同じ入力から同じ結果を再現できる設計です。
+- **学習単位を中心にした設計**: 教材や会話ではなくKnowledge Component（KC）を中心に、レッスン、問題、履歴、習熟度を関連付けます。
+- **小さくても端から端まで動く構成**: 対象を1KC・単一ユーザーに絞り、フロントエンド、API、DB、AI連携を縦に通します。
+- **安全性を境界で担保**: APIキーをサーバー側だけで扱い、PDFは公開領域外へ保存し、LLMへ渡す教材チャンクを最小限にします。
 
-- Next.js App Router + TypeScriptの学習画面
-- FastAPI、PostgreSQL、pgvector、SQLAlchemy、Alembic
-- CC0サンプルPDFの登録、ページ単位の抽出、Embedding、類似検索
+## 現在の実装状況
+
+| 領域 | 状態 | 内容 |
+|---|---|---|
+| Frontend | 実装済み | Next.js App Router、学習ルート、FastAPI接続状態の表示、loading / error UI |
+| Backend | 実装済み | FastAPI、アプリ・DBヘルスチェック、環境変数による設定 |
+| Database | 実装済み | PostgreSQL 17 + pgvector、SQLAlchemy Session、Alembic基準migration |
+| KC / Lesson | 一部実装 | KC YAMLは作成済み。DBモデル、レッスン、登録APIは未実装 |
+| Assessment | 未実装（設計済み） | 決定的な採点、段階的ヒント、Attempt保存、Mastery更新 |
+| RAG Tutor | 未実装（設計済み） | PDF登録、Embedding、類似検索、出典付き回答、根拠不足時の抑止 |
+
+詳細な進捗は[7日版ToDo](docs/mvp-todo.md)で管理しています。
+
+## 技術スタック
+
+| レイヤー | 技術 |
+|---|---|
+| Frontend | Next.js 16, React 19, TypeScript, Vitest |
+| Backend | FastAPI, Python 3.12+, pytest, Ruff |
+| Database | PostgreSQL 17, pgvector |
+| ORM / Migration | SQLAlchemy 2, Alembic |
+| Infrastructure | Docker Compose |
+| LLM / Embedding | バックエンドの環境変数でモデルを指定予定 |
+
+## アーキテクチャ
+
+```mermaid
+flowchart LR
+    Browser["Browser"] -->|"HTTP / JSON"| Next["Next.js App Router"]
+    Next -->|"HTTP / JSON"| API["FastAPI"]
+    API --> DB[("PostgreSQL + pgvector")]
+    API --> Files["Private PDF storage"]
+    API --> Models["LLM / Embedding API"]
+```
+
+設計上、次の責務を分離します。
+
+- Next.jsは表示とユーザー操作を担当し、秘密情報を保持しません。
+- FastAPIは入力検証、教材処理、検索、採点、Mastery更新を担当します。
+- PostgreSQLはKC、問題、教材チャンク、回答履歴、Masteryを一貫して保存します。
+- 採点結果とMasteryは同一トランザクションで更新し、片方だけが残る状態を防ぎます。
+
+より詳しいデータモデルと処理フローは[Architecture](docs/architecture.md)を参照してください。
+
+## 技術選定と設計判断
+
+### Next.js App Router + FastAPI
+
+初期データ取得はServer Component、回答・ヒント・AI質問などの操作はClient Componentへ分離する方針です。AI・教材処理をPython側へ集約することで、ブラウザへAPIキーを露出させず、データ処理ライブラリも利用しやすくしています。
+
+### PostgreSQL + pgvector
+
+学習データとベクトルを同じDBで扱い、1KC規模の検証で不要な分散構成を避けています。KCによる絞り込みとベクトル類似検索を組み合わせ、回答根拠を元の教材ページまで追跡できる形で保存します。
+
+### 決定的な採点とMastery
+
+LLMは教材に基づく説明に利用し、正誤判定や習熟度の更新には利用しません。評価ロジックをテスト可能にし、回答ごとの根拠、更新前後の値、計算方式の版を履歴へ残す設計です。
+
+## ローカルセットアップ
+
+### 前提環境
+
+- Node.js 20+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/)
+- Docker Desktop（Docker Composeを含む）
+
+### 1. 環境変数
+
+```console
+cp .env.example .env
+cp apps/frontend/.env.example apps/frontend/.env.local
+```
+
+`.env`の初期値はローカル開発用です。APIキーは今後LLMプロバイダーを接続する際に追加し、Gitには含めません。
+
+### 2. PostgreSQL + pgvector
+
+```console
+docker compose up -d db
+docker compose ps
+```
+
+`db`が`healthy`になったら、migrationを適用します。
+
+```console
+cd apps/backend
+uv sync
+uv run alembic upgrade head
+```
+
+pgvector拡張は次のコマンドで確認できます。
+
+```console
+docker compose exec -T db psql -U ai_tutor -d ai_tutor \
+  -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'vector';"
+```
+
+### 3. FastAPI
+
+`apps/backend`で起動します。
+
+```console
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+以下のレスポンスが返れば起動完了です。
+
+```console
+curl --fail http://127.0.0.1:8000/health
+# {"status":"ok"}
+
+curl --fail http://127.0.0.1:8000/health/database
+# {"status":"ok"}
+```
+
+### 4. Next.js
+
+別のターミナルで起動します。
+
+```console
+cd apps/frontend
+npm ci
+npm run dev
+```
+
+[http://localhost:3000](http://localhost:3000)を開き、学習ページでFastAPIが「接続済み」と表示されることを確認します。
+
+## テストと品質チェック
+
+Backend:
+
+```console
+cd apps/backend
+uv run python -m pytest
+uv run ruff check .
+```
+
+Frontend:
+
+```console
+cd apps/frontend
+npm test
+npm run lint
+npm run build
+```
+
+現時点ではBackend 6件、Frontend 11件のテストを用意しています。ヘルスチェック、設定、DB Session、migration、APIレスポンス変換を対象にしています。
+
+## ディレクトリ構成
+
+```text
+apps/
+├── frontend/          # Next.js App Router
+└── backend/           # FastAPI / SQLAlchemy / Alembic
+data/
+├── kcs/               # レビュー済みKCデータ
+└── books/             # 教材PDF（Git管理外）
+docker/postgres/init/  # pgvector初期化
+docs/                  # 要件、設計、計画、Mastery方針
+scripts/               # 教材・KCの生成、検証、登録
+tests/fixtures/pdfs/   # CC0サンプル教材
+```
+
+## スコープ
+
+このリポジトリは完成した製品版MVPではなく、**線形結合1KCの学習フローを検証する開発中のプロトタイプ**です。
+
+### 7日版で実装するもの
+
+- 線形結合のレッスン、2問の演習、3段階以上のヒント
+- 決定的な採点、回答履歴、簡易Mastery Score
+- CC0 PDFの登録、ページ単位の抽出、Embedding、類似検索
 - 教材名・ページ番号を示すAI回答と、根拠不足時の回答抑止
-- 固定回答または数値問題2問、3段階以上のヒント、採点
-- 回答履歴の保存と簡易Mastery Scoreの更新
-- 主要フローのテスト、デモ手順、スクリーンショット、60〜90秒の動画
+- 主要フローのテストと再現可能なローカル実行手順
 
-対象外:
+### 対象外
 
-- 複数KC、認証、複数ユーザー、クラウド公開
+- 複数ユーザー、認証、課金、クラウド公開
 - OCR、マルチモーダル解析、高度なRAG、汎用PDF対応
 - Socratic Mode、Explain-back評価、Python演習、本格的な復習機能
 - 本番運用水準のセキュリティ、性能、可用性
 
-完成時は「完成した製品版MVP」ではなく、
-「Next.js・FastAPI・pgvectorによる線形結合1KCの学習フローの技術検証」
-として説明します。
-
-## 技術構成
-
-| レイヤー | 採用技術 |
-|---|---|
-| Frontend | Next.js App Router + TypeScript |
-| Backend | FastAPI |
-| Database | PostgreSQL + pgvector |
-| ORM / Migration | SQLAlchemy + Alembic |
-| LLM / Embedding | バックエンドの環境変数でモデルを指定 |
-
-LLM APIキーはブラウザへ渡しません。教材PDFは公開ディレクトリ外へ保存し、
-LLMへ送るチャンクは回答に必要な最小範囲に限定します。
-
-> 現在の`apps/frontend/`は旧Vite雛形です。Day 1の`E1-02-7D`で
-> Next.js App Routerへ置き換えます。現時点の雛形を完成版として扱いません。
-
-## ディレクトリ
-
-| パス | 用途 |
-|---|---|
-| `apps/frontend/` | Next.jsフロントエンド（Day 1で移行） |
-| `apps/backend/` | FastAPIバックエンド |
-| `data/kcs/` | レビュー済みKCデータ |
-| `data/books/` | Git管理しない教材PDFの保存先 |
-| `docs/` | 7日版の要件、設計、計画、Mastery方針 |
-| `scripts/` | 教材・KCの生成、検証、登録用スクリプト |
-| `tests/fixtures/pdfs/` | Git管理可能なCC0サンプルPDF |
-
-## 開発環境の目標構成
-
-| サービス | 起動場所 | ポート |
-|---|---|---:|
-| Next.js | ホスト | `3000` |
-| FastAPI | ホスト | `8000` |
-| PostgreSQL + pgvector | Docker Compose | `5433` → `5432` |
-
-目標とする起動手順はDay 1で実装・検証し、このREADMEへ確定版を反映します。
-未実装のコマンドを動作済みとしては記載しません。
-
-## 環境変数の方針
-
-- ルート`.env`にDB接続、LLM、Embeddingの秘密情報を置き、Git管理しない。
-- コミットする`.env.example`には変数名と安全なダミー値だけを置く。
-- Next.jsでブラウザ公開する値だけ`NEXT_PUBLIC_`を付ける。
-- APIキーには`NEXT_PUBLIC_`を付けず、FastAPIだけから参照する。
-- モデル名は設定値として保存し、Embeddingには使用モデル名も記録する。
-
-## 7日間の実装計画
-
-- Day 1: Next.js、FastAPI、PostgreSQL、pgvector、Alembic
-- Day 2: KC、レッスン、問題、回答履歴、Mastery
-- Day 3: 一画面の学習UI
-- Day 4: PDF登録、抽出、チャンク、Embedding、検索
-- Day 5: 教材根拠付きAI質問と出典表示
-- Day 6: 統合テスト、安全性、UI調整
-- Day 7: README、デモ、スクリーンショット、動画、予備時間
-
-詳細は[7日版ToDo](docs/mvp-todo.md)を参照してください。
-
-## 完了条件
-
-- READMEの確定手順でローカル起動できる。
-- Next.js上で線形結合のレッスン、問題、ヒント、採点を利用できる。
-- CC0 PDFからチャンクとEmbeddingを生成し、教材根拠付きで質問できる。
-- AI回答に教材名とページを表示し、根拠不足時は推測しない。
-- 回答履歴とMasteryがDBへ保存され、再読み込み後も保持される。
-- バックエンドの主要テストとNext.jsの本番ビルドが成功する。
-- スクリーンショットと60〜90秒の動画で一連の動作を説明できる。
-
 ## ドキュメント
 
-- [7日版要件](docs/requirements.md)
-- [7日版Architecture](docs/architecture.md)
+- [要件定義](docs/requirements.md)
+- [Architecture](docs/architecture.md)
 - [7日版ToDo](docs/mvp-todo.md)
 - [Issue一覧・依存関係](docs/backlog-candidates.md)
 - [Mastery Policy](docs/mastery-policy.md)
+
+## License
+
+ライセンスは未設定です。
