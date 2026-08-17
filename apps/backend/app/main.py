@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="AI Tutor API")
+from app.api.router import api_router
+from app.core.config import settings
 
-
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+app = FastAPI(title=settings.app_title)
+app.include_router(api_router)
