@@ -112,7 +112,15 @@ docker compose ps
 ```console
 cd apps/backend
 uv sync
+
 uv run alembic upgrade head
+uv run alembic current
+
+uv run alembic downgrade -1
+uv run alembic current
+
+uv run alembic upgrade head
+uv run alembic current
 ```
 
 pgvector拡張は次のコマンドで確認できます。

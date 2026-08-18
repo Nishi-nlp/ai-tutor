@@ -13,8 +13,8 @@ PostgreSQL + pgvector、SQLAlchemy、Alembicとする。
 - [ ] `E1-01-7D` FastAPIの構成、ヘルスチェック、APIテストを整備する
 - [ ] `E1-02-7D` Vite雛形をNext.js App Router + TypeScriptへ置き換える
 - [ ] `E1-02-7D` 学習ルート、APIクライアント、loading/errorを用意する
-- [ ] `E1-03-7D` PostgreSQL + pgvectorをComposeで起動しFastAPIから接続する
-- [ ] `E1-04-7D` SQLAlchemy、Alembic、初期migrationを導入する
+- [x] `E1-03-7D` PostgreSQL + pgvectorをComposeで起動しFastAPIから接続する
+- [x] `E1-04-7D` SQLAlchemy、Alembic、初期migrationを導入する
 
 完了条件: Next.js、FastAPI、PostgreSQLを起動でき、画面から`GET /health`を
 呼べてpgvectorが有効になっている。
