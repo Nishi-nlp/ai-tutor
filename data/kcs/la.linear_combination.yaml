@@ -2,14 +2,12 @@ id: la.linear_combination
 name: 線形結合
 description: 複数のベクトルをスカラー倍して加えたもの
 
-prerequisites:
-  - la.vector_addition
-  - la.scalar_multiplication
+prerequisites: []
 
 learning_objectives:
-  - 線形結合を計算できる
-  - 線形結合を幾何学的に説明できる
-  - 行列ベクトル積との関係を説明できる
+  - 線形結合を「複数のベクトルをスカラー倍して加えたもの」と説明できる
+  - 与えられたベクトルと係数から線形結合を計算できる
+  - 行列ベクトル積を行列の列ベクトルの線形結合として読み替えられる
 
 source_refs:
   - document: strang
@@ -23,4 +21,3 @@ mastery:
   threshold: 0.85
   required_evidence:
     - no_hint_full_correct
-    - two_question_formats
