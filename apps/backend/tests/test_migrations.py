@@ -5,7 +5,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 
 from app.db.base import Base
-from app.db.models import KnowledgeComponent  # noqa: F401
+from app.db.models import Document, DocumentChunk, KnowledgeComponent  # noqa: F401
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,8 +24,12 @@ def _table_names(database_url: str) -> set[str]:
         engine.dispose()
 
 
-def test_metadata_contains_knowledge_components_table() -> None:
-    assert "knowledge_components" in Base.metadata.tables
+def test_metadata_contains_persistence_tables() -> None:
+    assert {
+        "knowledge_components",
+        "documents",
+        "document_chunks",
+    }.issubset(Base.metadata.tables)
 
 
 def test_migration_upgrade_and_downgrade(tmp_path: Path) -> None:
@@ -34,7 +38,18 @@ def test_migration_upgrade_and_downgrade(tmp_path: Path) -> None:
 
     command.upgrade(config, "head")
 
-    assert "knowledge_components" in _table_names(database_url)
+    assert {
+        "knowledge_components",
+        "documents",
+        "document_chunks",
+    }.issubset(_table_names(database_url))
+
+    command.downgrade(config, "20260822_0002")
+
+    table_names = _table_names(database_url)
+    assert "knowledge_components" in table_names
+    assert "documents" not in table_names
+    assert "document_chunks" not in table_names
 
     command.downgrade(config, "20260813_0001")
 

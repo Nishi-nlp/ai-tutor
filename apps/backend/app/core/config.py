@@ -1,5 +1,8 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
 
 
 @dataclass(frozen=True)
@@ -8,6 +11,9 @@ class Settings:
     database_url: str = os.getenv(
         "DATABASE_URL",
         "postgresql+psycopg://ai_tutor:local-development-only@localhost:5433/ai_tutor",
+    )
+    document_storage_dir: Path = Path(
+        os.getenv("DOCUMENT_STORAGE_DIR", PROJECT_ROOT / "data" / "books")
     )
 
 
