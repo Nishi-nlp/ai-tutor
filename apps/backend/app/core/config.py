@@ -15,6 +15,17 @@ class Settings:
     document_storage_dir: Path = Path(
         os.getenv("DOCUMENT_STORAGE_DIR", PROJECT_ROOT / "data" / "books")
     )
+    document_max_size_bytes: int = int(
+        os.getenv("DOCUMENT_MAX_SIZE_BYTES", str(10 * 1024 * 1024))
+    )
+
+    def __post_init__(self) -> None:
+        if self.document_max_size_bytes <= 0:
+            raise ValueError("DOCUMENT_MAX_SIZE_BYTES must be positive")
 
 
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    return settings
