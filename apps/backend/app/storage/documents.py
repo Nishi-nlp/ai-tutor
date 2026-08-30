@@ -28,8 +28,15 @@ def save_document(
     target_dir = storage_dir or settings.document_storage_dir
     target_dir.mkdir(parents=True, exist_ok=True)
     target_path = target_dir / storage_key
-    with target_path.open("xb") as stored_file:
-        stored_file.write(content)
+    created = False
+    try:
+        with target_path.open("xb") as stored_file:
+            created = True
+            stored_file.write(content)
+    except Exception:
+        if created:
+            target_path.unlink(missing_ok=True)
+        raise
 
     return StoredDocument(
         path=target_path,
