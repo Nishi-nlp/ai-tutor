@@ -1,0 +1,4 @@
+interface:
+  display_name: "Guided Issue Implementation"
+  short_description: "Learn concepts and design before implementing an issue"
+  default_prompt: "Use $guided-issue-implementation to implement this issue as a guided learning exercise."
