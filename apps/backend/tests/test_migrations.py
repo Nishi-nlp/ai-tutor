@@ -24,6 +24,14 @@ def _table_names(database_url: str) -> set[str]:
         engine.dispose()
 
 
+def _column_names(database_url: str, table_name: str) -> set[str]:
+    engine = create_engine(database_url)
+    try:
+        return {column["name"] for column in inspect(engine).get_columns(table_name)}
+    finally:
+        engine.dispose()
+
+
 def test_metadata_contains_persistence_tables() -> None:
     assert {
         "knowledge_components",
@@ -43,6 +51,15 @@ def test_migration_upgrade_and_downgrade(tmp_path: Path) -> None:
         "documents",
         "document_chunks",
     }.issubset(_table_names(database_url))
+    assert {"embedding", "embedding_model"}.issubset(
+        _column_names(database_url, "document_chunks")
+    )
+
+    command.downgrade(config, "20260826_0003")
+
+    assert {"embedding", "embedding_model"}.isdisjoint(
+        _column_names(database_url, "document_chunks")
+    )
 
     command.downgrade(config, "20260822_0002")
 
