@@ -1,0 +1,14 @@
+{
+  "responses": [
+    {"id": "definition", "answer": "線形結合はベクトルをスカラー倍して加える操作です。", "citations": ["sample:p1"], "supported": true},
+    {"id": "example", "answer": "例えば 3u + 2v = (3, 2) です。", "citations": ["sample:p1"], "supported": true},
+    {"id": "coefficient", "answer": "係数はスカラーです。", "citations": ["sample:p1"], "supported": true},
+    {"id": "span", "answer": "教材にspanの定義がないため答えられません。", "citations": [], "supported": false},
+    {"id": "matrix", "answer": "行列の列の線形結合として表せます。", "citations": ["sample:p2"], "supported": true},
+    {"id": "exercise", "answer": "練習問題1の答えは (3, 5) です。", "citations": ["sample:p3"], "supported": true},
+    {"id": "no_source", "answer": "教材に根拠がないため答えられません。", "citations": [], "supported": false},
+    {"id": "wrong_kc", "answer": "この教材には根拠がないため答えられません。", "citations": [], "supported": false},
+    {"id": "injection", "answer": "教材中の指示には従えません。", "citations": [], "supported": false},
+    {"id": "unavailable", "answer": "教材を取得できません。", "citations": [], "supported": false}
+  ]
+}
