@@ -77,3 +77,14 @@ jobs:
 
       - name: Test
         run: uv run --frozen python -m pytest
+
+      - name: Evaluate recorded tutor responses
+        run: uv run --frozen python -m evals.run --responses evals/fixtures/responses.json --output eval-results.json
+
+      - name: Upload evaluation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutor-eval-results
+          path: apps/backend/eval-results.json
+          if-no-files-found: warn

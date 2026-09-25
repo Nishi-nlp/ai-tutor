@@ -198,6 +198,26 @@ tests/fixtures/pdfs/   # CC0サンプル教材
 
 ## スコープ
 
+### AI回答の小規模評価
+
+`apps/backend/evals/cases.json` に線形結合の教材に関する質問と根拠不足などの10ケース、
+`evals/fixtures/responses.json` に**手作業で作った回答例**を置いています。
+回答の形式は `{"responses": [{"id": "definition", "answer": "...", "citations": ["sample:p1"], "supported": true}, ...]}` です。
+出典IDはサンプルPDFのページを表す仮のIDで、現在のDBのチャンクIDではありません。
+
+```bash
+cd apps/backend
+uv run --frozen python -m evals.run --responses evals/fixtures/responses.json --output eval-results.json
+uv run --frozen python -m pytest tests/test_tutor_evals.py
+```
+
+採点は形式、提供されたページの引用、必須キーワード、根拠不足の応答を検査し、
+各ケースの失敗理由と成功率をJSONに保存します。CIは10/10を基準に実行し、
+結果JSONをActionsのartifactとして保存します。回答APIが完成したら同じIDの
+実回答JSONを `--responses` に渡して評価できます。現在のCIは記録済みの回答例を
+評価しており、**実際のLLM品質や実際の引用の正しさを検証した結果ではありません**。
+キーワード検査だけでは意味の正しさも保証しないため、実回答の失敗例は人手で確認します。
+
 このリポジトリは完成した製品版MVPではなく、**線形結合1KCの学習フローを検証する開発中のプロトタイプ**です。
 
 ### 7日版で実装するもの

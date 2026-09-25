@@ -39,5 +39,6 @@ data/books/*.pdf
 
 # Logs and temporary files
 *.log
+eval-results.json
 tmp/
 temp/
