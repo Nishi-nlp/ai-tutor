@@ -6,13 +6,15 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.16,<2",
     "fastapi>=0.116,<1",
+    "openai>=2,<3",
+    "pgvector>=0.4,<1",
     "pydantic>=2.11,<3",
     "psycopg[binary]>=3.2,<4",
+    "pypdf>=6,<7",
     "python-multipart>=0.0.20,<1",
     "pyyaml>=6.0,<7",
     "sqlalchemy>=2.0,<3",
     "uvicorn[standard]>=0.35,<1",
-    "pypdf>=6,<7",
 ]
 
 [dependency-groups]
